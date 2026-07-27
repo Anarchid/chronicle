@@ -6,7 +6,6 @@
 
 use crate::error::{Result, StoreError};
 use crate::records::RecordLog;
-use crate::state::operations::apply_operation;
 use crate::types::{
     BranchId, StateOperation, StateRegistration, StateStrategy, StateUpdateRecord, TreeOp,
     TreeState,
@@ -833,10 +832,18 @@ impl StateManager {
         let index = self.index.read();
         let key = (branch_id, state_id.to_string());
         let head = index.heads.get(&key)?;
+        // Each delta snapshot covers delta_snapshot_every ops; a strategy
+        // without delta snapshots never increments delta_snapshots_since_full,
+        // so the multiplier is moot there.
+        let delta_every = match index.strategies.get(state_id) {
+            Some(StateStrategy::AppendLog { delta_snapshot_every, .. })
+            | Some(StateStrategy::Tree { delta_snapshot_every, .. }) => *delta_snapshot_every,
+            _ => 1,
+        };
 
         Some(CompactionStats {
-            ops_since_last_full_snapshot: head.ops_since_delta_snapshot
-                + head.delta_snapshots_since_full,
+            ops_since_last_full_snapshot: head.delta_snapshots_since_full * delta_every
+                + head.ops_since_delta_snapshot,
             last_full_snapshot_offset: head.last_full_snapshot_offset,
             last_delta_snapshot_offset: head.last_delta_snapshot_offset,
             delta_snapshots_since_full: head.delta_snapshots_since_full,

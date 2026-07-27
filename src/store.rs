@@ -2581,9 +2581,9 @@ mod tests {
         // After 5 appends with delta_snapshot_every=3:
         // - Appends 1,2,3 -> delta snapshot auto-created (ops=0, deltas=1)
         // - Appends 4,5 -> ops=2
-        // So: ops_since_last_full = 2 ops + 1 delta = 3
+        // So: ops_since_last_full = 1 delta * 3 ops covered + 2 raw ops = 5
         let stats = store.get_compaction_stats("items").unwrap();
-        assert_eq!(stats.ops_since_last_full_snapshot, 3); // 2 ops + 1 delta
+        assert_eq!(stats.ops_since_last_full_snapshot, 5); // 1 delta covering 3 + 2 raw
         assert_eq!(stats.delta_snapshots_since_full, 1);
         assert!(stats.last_full_snapshot_offset.is_none());
         assert!(stats.last_delta_snapshot_offset.is_some());

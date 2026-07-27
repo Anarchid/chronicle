@@ -53,8 +53,8 @@ impl Materialized {
         match self {
             Materialized::Arr(a) => Ok(a),
             // A tree op followed by an array op (or vice versa) on one state
-            // is malformed; the legacy per-op path would fail the same way at
-            // its serde parse.
+            // is malformed; the legacy per-op path fails at its serde parse
+            // with the same error variant (message text differs).
             _ => Err(StoreError::Deserialization(
                 "state is not a JSON array".to_string(),
             )),
